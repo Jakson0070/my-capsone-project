@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style></style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="user">
+        <h1>Welcome</h1>
+        <div id="userInfo"></div>
+      </div>
+      <button onclick="logout()">Logout</button>
+    </div>
+    <div>
+      <h2>Task Management</h2>
+
+      <!-- Search Input -->
+      <input type="text" id="searchInput" placeholder="Search tasks" />
+      <button onclick="searchTasks()">Search</button>
+      <button id="showw">Add task</button>
+
+      <div id="show" class="show">
+        <div class="innershow">
+          <button id="butclose" class="butclose">X</button>
+          <!-- Task Creation Form -->
+
+          <form id="createTaskForm" onsubmit="createTask(event)">
+            <h3>Create New Task</h3>
+            <input
+              type="text"
+              id="createTitleInput"
+              placeholder="Title"
+              required
+            />
+            <textarea
+              id="createDescriptionInput"
+              placeholder="Description"
+            ></textarea>
+            <input type="date" id="createDeadlineInput" />
+            <select id="createPriorityInput">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+            <button type="submit">Add Task</button>
+          </form>
+
+          <!-- Task Update Form (Hidden by Default) -->
+          <form
+            id="updateTaskForm"
+            onsubmit="updateTask(event)"
+            style="display: none"
+          >
+            <h3>Update Task</h3>
+            <input type="hidden" id="updateTaskIdInput" />
+            <input
+              type="text"
+              id="updateTitleInput"
+              placeholder="Title"
+              required
+            />
+            <textarea
+              id="updateDescriptionInput"
+              placeholder="Description"
+            ></textarea>
+            <input type="date" id="updateDeadlineInput" />
+            <select id="updatePriorityInput">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+            <button type="submit">Update Task</button>
+            <button type="button" onclick="cancelUpdate()">Cancel</button>
+          </form>
+        </div>
+      </div>
+      <!-- Tasks List -->
+      <h3>Tasks</h3>
+      <table>
+        <tbody id="tasks"></tbody>
+      </table>
+    </div>
+    <script>
+      const showbutton = document.getElementById("showw");
+      const showcon = document.getElementById("show");
+      const butclose = document.getElementById("butclose");
+
+      butclose.addEventListener("click", () => {
+        showcon.style.display = "none";
+      });
+
+      showbutton.addEventListener("click", () => {
+        if (showcon) {
+          showcon.style.display = "flex";
+        } else {
+          console.error("showcon element not found");
+        }
+      });
+
+      document.addEventListener("DOMContentLoaded", fetchUserInfo);
+      const token = localStorage.getItem("token");
+
+      async function fetchUserInfo() {
+        if (!token) {
+          window.location.href = "login.html";
+          return;
+        }
+
+        const res = await fetch("http://localhost:3000/api/userinfo", {
+          headers: { Authorization: token },
+        });
+
+        const user = await res.json();
+        const userInfoDiv = document.getElementById("userInfo");
+        if (user.username) {
+          userInfoDiv.innerHTML = `<h1> ${user.username}</h1>`;
+        } else {
+          alert("Unauthorized");
+          localStorage.removeItem("token");
+          window.location.href = "login.html";
+        }
+      }
+
+      function logout() {
+        localStorage.removeItem("token");
+        window.location.href = "login.html";
+      }
+
+      //get all task
+      async function fetchTasks(search = "") {
+        const res = await fetch(
+          `http://localhost:3000/api/tasks?search=${search}`,
+          {
+            headers: { Authorization: token },
+          }
+        );
+        const tasks = await res.json();
+        displayTasks(tasks);
+      }
+
+      //display all task
+      function displayTasks(tasks) {
+        const tasksContainer = document.getElementById("tasks");
+        tasksContainer.innerHTML = tasks.length
+          ? tasks
+              .map(
+                (task) => `
+        <tr>
+          <td> <button onclick="showUpdateForm('${task._id}', '${
+                  task.title
+                }', '${task.description}', '${task.deadline}', '${
+                  task.priority
+                }')">Edit</button></td>
+           <td><button onclick="deleteTask('${task._id}')">Delete</button></td>
+          <td> <h3>${task.title}</h3></td>
+           <td><p>${task.description}</p></td>
+           <td class="date"><p> ${new Date(
+             task.deadline
+           ).toLocaleDateString()}</p></td>
+          <td> <p> ${task.priority}</p></td>
+        </tr>
+      `
+              )
+              .join("")
+          : `<p>No tasks found.</p>`;
+      }
+
+      // Function to Create a New Task
+      async function createTask(event) {
+        event.preventDefault();
+
+        const title = document.getElementById("createTitleInput").value;
+        const description = document.getElementById(
+          "createDescriptionInput"
+        ).value;
+        const deadline = document.getElementById("createDeadlineInput").value;
+        const priority = document.getElementById("createPriorityInput").value;
+
+        const taskData = { title, description, deadline, priority };
+
+        const res = await fetch("http://localhost:3000/api/tasks", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
+          body: JSON.stringify(taskData),
+        });
+
+        if (res.ok) {
+          alert("Task added successfully!");
+          document.getElementById("createTaskForm").reset();
+          fetchTasks();
+        } else {
+          alert("Failed to add task");
+        }
+        showcon.style.display = "none";
+      }
+
+      // Function to Show Update Form with Prefilled Data
+      function showUpdateForm(id, title, description, deadline, priority) {
+        // Hide Create Form and Show Update Form
+        showcon.style.display = "flex";
+        const createForm = document.getElementById("createTaskForm");
+        const updateForm = document.getElementById("updateTaskForm");
+
+        createForm.style.display = "none";
+        updateForm.style.display = "block";
+
+        // Prefill Update Form with task data
+        document.getElementById("updateTaskIdInput").value = id;
+        document.getElementById("updateTitleInput").value = title;
+        document.getElementById("updateDescriptionInput").value = description;
+        document.getElementById("updateDeadlineInput").value =
+          deadline.split("T")[0]; // Format date
+        document.getElementById("updatePriorityInput").value = priority;
+      }
+
+      // Function to Update a Task
+      async function updateTask(event) {
+        event.preventDefault();
+
+        const taskId = document.getElementById("updateTaskIdInput").value;
+        const title = document.getElementById("updateTitleInput").value;
+        const description = document.getElementById(
+          "updateDescriptionInput"
+        ).value;
+        const deadline = document.getElementById("updateDeadlineInput").value;
+        const priority = document.getElementById("updatePriorityInput").value;
+
+        const taskData = { title, description, deadline, priority };
+
+        const res = await fetch(`http://localhost:3000/api/tasks/${taskId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
+          body: JSON.stringify(taskData),
+        });
+
+        if (res.ok) {
+          alert("Task updated successfully!");
+          cancelUpdate();
+          fetchTasks();
+        } else {
+          alert("Failed to update task");
+        }
+        showcon.style.display = "none";
+      }
+
+      // Function to Cancel Update and Reset Forms
+      function cancelUpdate() {
+        document.getElementById("updateTaskForm").reset();
+        document.getElementById("createTaskForm").style.display = "block";
+        document.getElementById("updateTaskForm").style.display = "none";
+      }
+
+      async function deleteTask(taskId) {
+        await fetch(`http://localhost:3000/api/tasks/${taskId}`, {
+          method: "DELETE",
+          headers: { Authorization: token },
+        });
+        fetchTasks();
+      }
+
+      function searchTasks() {
+        const searchInput = document.getElementById("searchInput").value;
+        fetchTasks(searchInput);
+      }
+
+      document.getElementById("searchInput").addEventListener("input", () => {
+        searchTasks();
+      });
+
+      document.addEventListener("DOMContentLoaded", () => {
+        fetchTasks(); // Initial Fetch of Tasks
+      });
+    </script>
+  </body>
+</html>

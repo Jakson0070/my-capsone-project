@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Signup</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f1f1f1;
+        height: 90vh;
+      }
+
+      h1 {
+        color: rgb(75, 75, 75);
+        margin-bottom: 20px;
+      }
+
+      input {
+        border-radius: 10px;
+        padding: 15px;
+        border-radius: 10px;
+        background-color: #ffffff;
+      }
+
+      button {
+        border: none;
+        border-radius: 15px;
+        padding: 15px;
+        margin-top: 10px;
+        background-color: #9c9c9c;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Signup</h1>
+    <form id="signupForm">
+      <input type="text" id="signupUsername" placeholder="Username" required />
+      <input
+        type="password"
+        id="signupPassword"
+        placeholder="Password"
+        required
+      />
+      <button type="submit">Register</button>
+    </form>
+    <p>Already have an account? <a href="login.html">Login</a></p>
+    <script src="signup.js"></script>
+  </body>
+</html>
